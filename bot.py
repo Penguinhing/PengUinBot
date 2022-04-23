@@ -79,4 +79,5 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.ArgumentParsingError):
         await ctx.send(embed = discord.Embed(description="제대로된 값을 입력해주세요.\n", color = color['red']).set_author(name="입력값 오류", icon_url=icon['error']))
 
-bot.run('your token')
+bot.run('NTUwMDUzNzQyMDkxNjk4MTc2.XHWjdw.6KtimAjNKuBZzKNHj_nKAByWuv4')
+# https://discord.com/api/oauth2/authorize?client_id=550053742091698176&permissions=8&scope=bot

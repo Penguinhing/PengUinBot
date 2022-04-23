@@ -40,14 +40,23 @@ class MusicHelper:
         self.save_playlist(playlist=playlist)
     
     # 플레이리스트 불러오기
-    def load_playlist(self):
-        with open(f"{self.server_playpath}{self.server_id}.txt", 'rb') as FILE:
-            return pickle.load(FILE)
+    def load_playlist(self, user_id=None):
+
+        if user_id != None:
+            with open('data/music/playlist/user/' + f"{user_id}.txt", 'rb') as FILE:
+                return pickle.load(FILE)
+        else:
+            with open(f"{self.server_playpath}{self.server_id}.txt", 'rb') as FILE:
+                return pickle.load(FILE)
 
     # 플레이리스트 저장
-    def save_playlist(self, playlist):
-        with open(self.server_playpath + f"{self.server_id}.txt", 'wb') as FILE:
-            pickle.dump(playlist, FILE)
+    def save_playlist(self, playlist, user_id=None):
+        if user_id != None:
+            with open('data/music/playlist/user/' + f"{user_id}.txt", 'wb') as FILE:
+                pickle.dump(playlist, FILE)
+        else:
+            with open(self.server_playpath + f"{self.server_id}.txt", 'wb') as FILE:
+                pickle.dump(playlist, FILE)
 
     
     def load_config(self):

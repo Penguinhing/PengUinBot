@@ -46,7 +46,7 @@ class MusicCommand(commands.Cog, name="노래"):
             return
         if not len(title):
             if not (ctx.voice_client.is_playing() or ctx.voice_client.is_paused()):
-                self._tasks[ctx.guild.id] = tasks.loop(seconds=0.1)(self.play)
+                self._tasks[ctx.guild.id] = tasks.loop(seconds=0.1)(self.search_wrapper)
                 self._tasks[ctx.guild.id].start(ctx)
 
             if ctx.voice_client.is_playing():
@@ -85,10 +85,10 @@ class MusicCommand(commands.Cog, name="노래"):
             .set_footer(icon_url=ctx.author.avatar, text=str(ctx.author.name) + '#' + str(ctx.author.discriminator)))
 
         if not (ctx.voice_client.is_playing() or ctx.voice_client.is_paused()):
-            self._tasks[ctx.guild.id] = tasks.loop(seconds=0.1)(self.play)
+            self._tasks[ctx.guild.id] = tasks.loop(seconds=0.1)(self.search_wrapper)
             self._tasks[ctx.guild.id].start(ctx)
     
-    async def play(self, ctx):
+    async def search_wrapper(self, ctx):
 
         if ctx.voice_client is None:
             await ctx.send(embed=discord.Embed(description='음성 채널에 초대해야 노래 재생이 가능합니다.', color=color['yellow']).set_author(name="재생 불가", icon_url=icon['warning'])); self._tasks[ctx.guild.id].cancel()
@@ -111,21 +111,35 @@ class MusicCommand(commands.Cog, name="노래"):
             
             MusicHelper(ctx=ctx).recently_remove()
 
-    # 플레이리스트 목록 확인
-    @commands.command(name="playlist", aliases=['목록', 'v'], help="서버의 재생 목록을 확인합니다.", usage="-playlist")
-    async def playlist(self, ctx):
-        playlist = ["{0}. {1}".format(i+1, p.split('---')[1]) for i, p in enumerate(MusicHelper(ctx=ctx).load_playlist())]
+
+
+
+
+    # 재생 목록 확인
+    @commands.command(name="queue", aliases=['목록', 'q'], help="서버의 재생 목록을 확인합니다.", usage="-queue")
+    async def queue(self, ctx):
+
+        await self.queue_wrapper(ctx=ctx)
+
+            
+    async def queue_wrapper(self, ctx, user_id=None):
+        playlist = ["{0}. {1}".format(i+1, p.split('---')[1]) for i, p in enumerate(MusicHelper(ctx=ctx).load_playlist(user_id=user_id))]
 
         if len(playlist) == 0:
             await ctx.send("재생 목록이 비어있습니다!"); return
+        
 
-        embed = discord.Embed(title="재생 목록", description='\n'.join(playlist[:5]), color=color['sky']).set_thumbnail(url='https://i.imgur.com/nMxWMtB.png')
+        embed = discord.Embed(title="{0}님의 재생 목록".format(ctx.author.name) if user_id != None else '재생 목록', description='\n'.join(playlist[:5]), color=color['sky'])\
+            .set_thumbnail(url='https://i.imgur.com/nMxWMtB.png')
+
         page = int(len(playlist) / 5 + 1) if len(playlist)  > 5 and len(playlist) % 5 >= 1 else int(len(playlist) / 5)
 
         if page > 1:
-            await ctx.send(embed = embed.set_footer(text=f"1/{page}"), view=PB(ctx=ctx))
+            await ctx.send(embed = embed.set_footer(text=f"1/{page}"), view=PB(ctx=ctx, user_id=user_id))
         else:
             await ctx.send(embed=embed)
+    
+
 
 
     @commands.command(name="shuffle", aliases=['셔플', 'sf'], help="재생 목록의 순서를 랜덤으로 섞습니다.", usage='-shuffle')
@@ -139,7 +153,8 @@ class MusicCommand(commands.Cog, name="노래"):
         else:
             random.shuffle(playlist)
         MusicHelper(ctx).save_playlist(playlist)
-        await ctx.send(embed=discord.Embed(title="SHUFFLE", description="재생 목록의 순서를 랜덤으로 섞었습니다!", color=color['purple']))
+        await ctx.send(embed=discord.Embed(title="SHUFFLE", description="재생 목록의 순서를 랜덤으로 섞었습니다!", color=color['purple']).set_thumbnail(url='https://i.imgur.com/to24Xi1.png'))
+
 
     @commands.command(name="skip", aliases=['스킵', 'ss'], help="현재 재생 중인 노래를 다음 노래로 스킵합니다.", usage="-skip")
     async def skip(self, ctx):
@@ -148,6 +163,7 @@ class MusicCommand(commands.Cog, name="노래"):
             .set_author(name="SKIP", icon_url='https://i.imgur.com/82VL1OJ.png'))
         MusicHelper(ctx=ctx).recently_remove()
         self._tasks[ctx.guild.id].start(ctx)
+
 
     @commands.command(name='nowplay', aliases=['np'], help="재생 목록에서 ``번호``에 해당하는 노래를 맨 앞으로 가져옵니다.\n(아무 입력 없을 시 재생 중인 노래 확인)", usage="-nowplay ``[번호]``")
     async def nowplaying(self, ctx, number=0, msg_obj=None):
@@ -207,5 +223,27 @@ class MusicCommand(commands.Cog, name="노래"):
         
         config['LOOP'] = not config['LOOP']
         MusicHelper(ctx=ctx).save_config(config)
+    
+
+    @commands.command(name="playlist", aliases=['재생목록', '플레이리스트'], help="개인 재생 목록을 저장하거나 불러옵니다.", usage='-재생목록 [저장/불러오기/확인]')
+    async def playlist(self, ctx, option):
+        try:
+            if option == '저장':
+                MusicHelper(ctx=ctx).save_playlist(playlist=MusicHelper(ctx=ctx).load_playlist(), user_id=ctx.author.id)
+                await ctx.send(embed=discord.Embed(description='현재 서버의 플레이리스트를 저장했습니다!', color=color['green']).set_author(name="PLAYLIST SAVED", icon_url=icon['success']))
+
+            elif option == '불러오기':
+                MusicHelper(ctx=ctx).save_playlist(playlist=MusicHelper(ctx=ctx).load_playlist(user_id=ctx.author.id))
+                await ctx.send(embed=discord.Embed(description="개인 플레이리스트를 서버로 불러왔습니다!", color=color['green']).set_author(name="PLAYLIST LOADED", icon_url=icon['success'])\
+                .set_footer(icon_url=ctx.author.avatar, text=str(ctx.author.name) + '#' + str(ctx.author.discriminator)))
+            
+            elif option == '확인':
+                await self.queue_wrapper(ctx=ctx, user_id=ctx.author.id)
+            else:
+                raise commands.ArgumentParsingError
+        except FileNotFoundError:
+            await ctx.send(embed = discord.Embed(description=f"{ctx.author.name}님의 개인 재생목록을 찾지못했습니다.\n", color = color['red']).set_author(name="명령어 오류", icon_url=icon['error']))
+
+
 async def setup(bot):
     await bot.add_cog(MusicCommand(bot))
