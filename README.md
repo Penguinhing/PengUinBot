@@ -1,4 +1,5 @@
 # Discord PengUinBot (음악 봇)
+invite: https://discord.com/api/oauth2/authorize?client_id=550053742091698176&permissions=3271680&scope=bot
 <br/><br/>
 ## 명령어 목록
 #### -join
