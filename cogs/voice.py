@@ -190,16 +190,13 @@ class VoiceCog(commands.Cog, name="통화"):
         else:
             await interaction.response.send_message('통화 랭킹 1등만 색 설정이 가능합니다.', ephemeral=True)
 
-
-
-        
-
     def format_time(self, second:int): # 초단위 -> 시간포맷 (n일 n시간 n분 n초)
-        _time = str(dt.timedelta(seconds=second)).replace(' days, ', ':').replace(' day, ', ':').split(':') # 시간 포맷
+        _time = list(map(int, str(dt.timedelta(seconds=second)).replace(' days, ', ':').replace(' day, ', ':').split(':'))) # 시간 포맷
         if len(_time) != 4:
             for i in range(4 - len(_time)):
-                _time.insert(i, '0')
-        return f'{_time[0]}일 {_time[1]}시간 {_time[2]}분 {_time[3]}초'
+                _time.insert(i, 0)
+        _time[1] += _time[0]*24    
+        return f'{_time[1]}시간 {_time[2]}분 {_time[3]}초'
 
 async def setup(bot):
     await bot.add_cog(VoiceCog(bot))
