@@ -10,8 +10,8 @@ class ManagerCog(commands.Cog):
     @app_commands.command(name="청소", description="갯수만큼 채널의 메시지를 삭제합니다. (관리자 전용)")
     @app_commands.checks.has_permissions(administrator=True)
     async def cleanup(self, interaction:discord.Interaction, 갯수:int):
-        await interaction.response.send_message(f"채널에서 {갯수}개의 메시지를 삭제했습니다.", ephemeral=True)
         await interaction.channel.purge(limit=갯수)
+        await interaction.response.defer()
         
 
 async def setup(bot):
