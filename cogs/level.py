@@ -7,7 +7,6 @@ from random import randint
 
 
 class LevelCog(commands.Cog, name="LV"):
-
     def __init__(self, bot):
         self.bot = bot
         self.mysql = self.bot.get_cog('mysql')
@@ -28,7 +27,7 @@ class LevelCog(commands.Cog, name="LV"):
 
 
     async def give_exp(self, UUID:str, EXP:int, member:discord.Member):
-        await self.mysql._execute(f"INSERT INTO user_info (SERVER_ID, MEMBER_ID, UUID, EXP, TOTAL_EXP) VALUES ('{member.guild.id}', '{member.id}', '{UUID}', {EXP}, {EXP}) ON DUPLICATE KEY UPDATE EXP=EXP+{EXP}, TOTAL_EXP=TOTAL_EXP+EXP;") # 경험치 지급
+        await self.mysql._execute(f"INSERT INTO user_info (SERVER_ID, MEMBER_ID, UUID, EXP, TOTAL_EXP) VALUES ('{member.guild.id}', '{member.id}', '{UUID}', {EXP}, {EXP}) ON DUPLICATE KEY UPDATE SERVER_ID='{member.guild.id}', EXP=EXP+{EXP}, TOTAL_EXP=TOTAL_EXP+EXP;") # 경험치 지급
 
         user_info = await self.mysql.fetch_one_data(f"SELECT CURRENT_LEVEL, EXP FROM user_info WHERE UUID='{UUID}'")
 
@@ -85,12 +84,19 @@ class LevelCog(commands.Cog, name="LV"):
             pass
 
 
-    @app_commands.command(name="내정보", description="자기 자신의 레벨 정보를 확인합니다.")
-    async def my_info(self, interaction:discord.Interaction):
-        UUID = self.get_UUID(interaction.guild.id, interaction.user.id)
+    @app_commands.command(name="정보", description="자기 자신 또는 다른 사람의 레벨 정보를 확인합니다.")
+    async def my_info(self, interaction:discord.Interaction, 멘션:str = None):
+        user_id = int(멘션.replace('<@', '').replace('>', '')) if 멘션 else interaction.user.id
+        UUID = self.get_UUID(interaction.guild.id, user_id if 멘션 else interaction.user.id)
+        embed = await self.get_info(interaction.guild.id, user_id, UUID)
+        if embed:
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+        return await interaction.response.send_message('서버에 등록된 정보가 없습니다.', ephemeral=True)
 
-        user_infos = await self.mysql.fetch_all_data(f"SELECT UUID, VOICE_TIME, CURRENT_LEVEL, EXP, TOTAL_EXP FROM user_info WHERE SERVER_ID = {interaction.guild.id} ORDER BY TOTAL_EXP DESC;")
-        
+
+    async def get_info(self, server_id, member_id, UUID):
+        user = self.bot.get_user(member_id)
+        user_infos = await self.mysql.fetch_all_data(f"SELECT UUID, VOICE_TIME, CURRENT_LEVEL, EXP, TOTAL_EXP FROM user_info WHERE SERVER_ID = {server_id} ORDER BY TOTAL_EXP DESC;")
         for ranking, user_info in enumerate(user_infos):
             if user_info['UUID'] == UUID:
                 now_exp = user_info['EXP']
@@ -99,15 +105,15 @@ class LevelCog(commands.Cog, name="LV"):
                 now_level = user_info['CURRENT_LEVEL']
                 voice_time = self.format_time(user_info['VOICE_TIME'])
                 embed=discord.Embed(color=color['green'])
-                embed.set_author(name=interaction.user.name, icon_url=interaction.user.avatar)
+                embed.set_author(name=f"{user.name} 님의 정보", icon_url=user.avatar)
                 embed.add_field(name="현재 레벨", value=f"Lv.{now_level} ({total_exp:,} EXP) \n\u200b", inline=False)
                 embed.add_field(name="다음 레벨까지 남은 경험치", value=f"{now_exp:,} / {next_exp:,} EXP \n\u200b", inline=False)
                 embed.add_field(name="총 통화 시간", value=f"{voice_time} \n\u200b", inline=False)
                 embed.add_field(name="서버 랭킹", value=f"{ranking+1}위", inline=False)
-                return await interaction.response.send_message(embed=embed, ephemeral=True)
-        
+                return embed
+        return False
 
-        return await interaction.response.send_message('서버에 등록된 정보가 없습니다.', ephemeral=True)
+
 
 
     @app_commands.command(name="서버랭킹", description="각 멤버별 레벨 순위를 확인합니다.")
@@ -129,10 +135,14 @@ class LevelCog(commands.Cog, name="LV"):
     async def on_message(self, message):
         try:
             if not message.author.bot:
-                await self.give_exp(UUID=self.get_UUID(server_id=message.author.guild.id, member_id=message.author.id), EXP=randint(100, 500), member=message.author)
+                await self.give_exp(UUID=self.get_UUID(server_id=message.author.guild.id, member_id=message.author.id), EXP=randint(10, 20), member=message.author)
         except AttributeError:
             pass
-        
+    
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        UUID = self.get_UUID(member.guild.id, member.id)
+        await self.mysql._execute(f"UPDATE user_info SET SERVER_ID = null WHERE UUID = '{UUID}'")
 
 async def setup(bot):
     await bot.add_cog(LevelCog(bot))
