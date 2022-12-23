@@ -35,14 +35,12 @@ class VoiceCog(commands.Cog, name="통화"):
 
                     if seconds > 5 and not member.bot: # 통화시간이 5초 이상인 경우 저장
                         UUID = self.level.get_UUID(member.guild.id, member.id)
-                        await self.mysql._execute(f"INSERT INTO user_info (SERVER_ID, MEMBER_ID, UUID, VOICE_TIME) VALUES ('{member.guild.id}','{member.id}', '{UUID}', {seconds}) ON DUPLICATE KEY UPDATE VOICE_TIME = VOICE_TIME+{seconds};")
+                        await self.mysql._execute(f"INSERT INTO user_info (SERVER_ID, MEMBER_ID, UUID, VOICE_TIME) VALUES ('{member.guild.id}','{member.id}', '{UUID}', {seconds}) ON DUPLICATE KEY UPDATE VOICE_TIME = VOICE_TIME+{seconds}")
                         await self.level.give_exp(UUID, EXP=seconds, member=member)
 
 
                 else:
                     return await before.channel.send(f'{member.mention} 님, 통화 시간을 저장하는 데에 알 수 없는 오류가 발생하였습니다. 해당 통화 시간을 저장하시려면 개발자에게 문의해주세요.')
-                
-
                 
 
             
