@@ -1,5 +1,5 @@
 
-import discord, datetime as dt
+import discord, asyncio, datetime as dt
 from view.setting import *
 from discord.ext import commands
 from discord import app_commands
@@ -10,6 +10,7 @@ class LevelCog(commands.Cog, name="LV"):
     def __init__(self, bot):
         self.bot = bot
         self.mysql = self.bot.get_cog('mysql')
+        self.anti_spam = {}
 
     
     def get_UUID(self, server_id:int, member_id:int):
@@ -26,6 +27,20 @@ class LevelCog(commands.Cog, name="LV"):
 
 
 
+    async def give_new_role(self, member,  user_info, roles):
+        if roles:
+            for role in roles:
+                if role['CURRENT_LEVEL'] <= user_info['CURRENT_LEVEL']:
+                    if str(member.roles).find(role['ROLE_ID'].replace('<@&', '').replace('>', '')) != -1: # 이미 역할을 가지고 있다면
+                        return False
+                    for _role in roles: # 기존 역할들 모두 삭제
+                        await member.remove_roles(self.bot.get_guild(member.guild.id).get_role(int(_role['ROLE_ID'].replace('<@&', '').replace('>', ''))))
+
+                    await member.add_roles(self.bot.get_guild(member.guild.id).get_role(int(role['ROLE_ID'].replace('<@&', '').replace('>', '')))) # 새로운 역할 부여
+                    return role['ROLE_ID']
+        return False
+
+
     async def give_exp(self, UUID:str, EXP:int, member:discord.Member):
         await self.mysql._execute(f"INSERT INTO user_info (SERVER_ID, MEMBER_ID, UUID, EXP, TOTAL_EXP) VALUES ('{member.guild.id}', '{member.id}', '{UUID}', {EXP}, {EXP}) ON DUPLICATE KEY UPDATE SERVER_ID='{member.guild.id}', EXP=EXP+{EXP}, TOTAL_EXP=TOTAL_EXP+EXP;") # 경험치 지급
 
@@ -40,16 +55,9 @@ class LevelCog(commands.Cog, name="LV"):
             notice = await self.mysql.fetch_one_data(f"SELECT CHANNEL_ID FROM level_up WHERE SERVER_ID='{member.guild.id}'")
 
             # 역할 업데이트
-            get_role = None 
-            roles = await self.mysql.fetch_all_data(f"SELECT ROLE_ID, CURRENT_LEVEL FROM level_role WHERE SERVER_ID = '{member.guild.id}'")
-            if roles:
-                for role in roles:
-                    if role['CURRENT_LEVEL'] == user_info['CURRENT_LEVEL']:
-                        for _role in roles: # 기존 역할들 모두 삭제
-                            await member.remove_roles(self.bot.get_guild(member.guild.id).get_role(int(_role['ROLE_ID'].replace('<@&', '').replace('>', ''))))
-
-                        await member.add_roles(self.bot.get_guild(member.guild.id).get_role(int(role['ROLE_ID'].replace('<@&', '').replace('>', '')))) # 새로운 역할 부여
-                        get_role = role['ROLE_ID']
+            roles = await self.mysql.fetch_all_data(f"SELECT ROLE_ID, CURRENT_LEVEL FROM level_role WHERE SERVER_ID = '{member.guild.id}' ORDER BY CURRENT_LEVEL DESC")
+            get_role = await self.give_new_role(member=member, user_info=user_info, roles=roles)
+            
             
             # 알림
             if notice:
@@ -131,11 +139,31 @@ class LevelCog(commands.Cog, name="LV"):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+    @app_commands.command(name="새로고침", description="레벨 정보를 새로고침합니다.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def reload_level(self, interaction:discord.Interaction):
+        await interaction.response.defer()
+        user_infos = await self.mysql.fetch_all_data(f"SELECT * FROM user_info WHERE SERVER_ID='{interaction.guild.id}'")
+        role_infos = await self.mysql.fetch_all_data(f"SELECT * FROM level_role WHERE SERVER_ID='{interaction.guild.id}' ORDER BY CURRENT_LEVEL DESC")
+        for user_info in user_infos:
+            member = self.bot.get_guild(interaction.guild.id).get_member(int(user_info['MEMBER_ID']))
+            await self.give_new_role(member=member, user_info = user_info, roles=role_infos)
+
+
+        await interaction.followup.send("레벨을 새로고침 하였습니다.", ephemeral=True)
+
+
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.author.bot: return
+        if not message.author.id in self.anti_spam:
+            self.anti_spam[message.author.id] = 0
         try:
-            if not message.author.bot:
-                await self.give_exp(UUID=self.get_UUID(server_id=message.author.guild.id, member_id=message.author.id), EXP=randint(10, 20), member=message.author)
+            if self.anti_spam[message.author.id] == 0:
+                await self.give_exp(UUID=self.get_UUID(server_id=message.author.guild.id, member_id=message.author.id), EXP=randint(30, 50), member=message.author)
+            self.anti_spam[message.author.id] += 1
+            await asyncio.sleep(0.7)
+            self.anti_spam[message.author.id] -= 1
         except AttributeError:
             pass
     
