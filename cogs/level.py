@@ -42,7 +42,7 @@ class LevelCog(commands.Cog, name="LV"):
 
 
     async def give_exp(self, UUID:str, EXP:int, member:discord.Member):
-        await self.mysql._execute(f"INSERT INTO user_info (SERVER_ID, MEMBER_ID, UUID, EXP, TOTAL_EXP) VALUES ('{member.guild.id}', '{member.id}', '{UUID}', {EXP}, {EXP}) ON DUPLICATE KEY UPDATE SERVER_ID='{member.guild.id}', EXP=EXP+{EXP}, TOTAL_EXP=TOTAL_EXP+EXP;") # 경험치 지급
+        await self.mysql._execute(f"INSERT INTO user_info (SERVER_ID, MEMBER_ID, UUID, EXP, TOTAL_EXP) VALUES ('{member.guild.id}', '{member.id}', '{UUID}', {EXP}, {EXP}) ON DUPLICATE KEY UPDATE SERVER_ID='{member.guild.id}', EXP=EXP+{EXP}, TOTAL_EXP=TOTAL_EXP+{EXP};") # 경험치 지급
 
         user_info = await self.mysql.fetch_one_data(f"SELECT CURRENT_LEVEL, EXP FROM user_info WHERE UUID='{UUID}'")
 
@@ -89,7 +89,15 @@ class LevelCog(commands.Cog, name="LV"):
             await self.mysql._execute(f"DELETE FROM level_role WHERE ROLE_ID = '{역할}'")
             await interaction.response.send_message(f'역할 목록에서 {역할} 역할을 제거하였습니다.', ephemeral=True)
         elif 옵션 == '새로고침':
-            pass
+            await interaction.response.defer()
+            user_infos = await self.mysql.fetch_all_data(f"SELECT * FROM user_info WHERE SERVER_ID='{interaction.guild.id}'")
+            role_infos = await self.mysql.fetch_all_data(f"SELECT * FROM level_role WHERE SERVER_ID='{interaction.guild.id}' ORDER BY CURRENT_LEVEL DESC")
+            for user_info in user_infos:
+                member = self.bot.get_guild(interaction.guild.id).get_member(int(user_info['MEMBER_ID']))
+                await self.give_new_role(member=member, user_info = user_info, roles=role_infos)
+
+
+        await interaction.followup.send("레벨을 새로고침 하였습니다.", ephemeral=True)
 
 
     @app_commands.command(name="정보", description="자기 자신 또는 다른 사람의 레벨 정보를 확인합니다.")
@@ -137,20 +145,6 @@ class LevelCog(commands.Cog, name="LV"):
             total_exp = f"- 획득한 경험치: {user_info['TOTAL_EXP']:,} EXP\n"
             embed.add_field(name=f"{ranking+1}위 {user.display_name} {now_level}", value=voice_time + total_exp + '\n\u200b', inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-    @app_commands.command(name="새로고침", description="레벨 정보를 새로고침합니다.")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def reload_level(self, interaction:discord.Interaction):
-        await interaction.response.defer()
-        user_infos = await self.mysql.fetch_all_data(f"SELECT * FROM user_info WHERE SERVER_ID='{interaction.guild.id}'")
-        role_infos = await self.mysql.fetch_all_data(f"SELECT * FROM level_role WHERE SERVER_ID='{interaction.guild.id}' ORDER BY CURRENT_LEVEL DESC")
-        for user_info in user_infos:
-            member = self.bot.get_guild(interaction.guild.id).get_member(int(user_info['MEMBER_ID']))
-            await self.give_new_role(member=member, user_info = user_info, roles=role_infos)
-
-
-        await interaction.followup.send("레벨을 새로고침 하였습니다.", ephemeral=True)
 
 
     @commands.Cog.listener()
