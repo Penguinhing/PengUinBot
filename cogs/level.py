@@ -129,6 +129,14 @@ class LevelCog(commands.Cog, name="LV"):
                 return embed
         return False
 
+    @app_commands.command(name="경험치지급", description="경험치를 지급합니다.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def give_exp_command(self, interaction:discord.Interaction, 멘션:str, exp:int):
+        멘션 = int(멘션.replace('<@', '').replace('>', ''))
+        member = self.bot.get_guild(interaction.guild.id).get_member(멘션)
+        await interaction.response.send_message(f"<@!{멘션}> 님에게 {exp:,} EXP 를 지급하였습니다.", ephemeral=True)
+        await self.give_exp(UUID = self.get_UUID(interaction.guild.id, 멘션), EXP=exp, member=member)
+        
 
 
 
