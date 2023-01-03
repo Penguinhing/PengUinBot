@@ -134,7 +134,7 @@ class LevelCog(commands.Cog, name="LV"):
     async def give_exp_command(self, interaction:discord.Interaction, 멘션:str, exp:int):
         멘션 = int(멘션.replace('<@', '').replace('>', ''))
         member = self.bot.get_guild(interaction.guild.id).get_member(멘션)
-        await interaction.response.send_message(f"<@!{멘션}> 님에게 {exp:,} EXP 를 지급하였습니다.", ephemeral=True)
+        await interaction.response.send_message(f"<@!{멘션}> 님에게 {exp:,} EXP 를 지급하였습니다.")
         await self.give_exp(UUID = self.get_UUID(interaction.guild.id, 멘션), EXP=exp, member=member)
         
 
@@ -162,7 +162,7 @@ class LevelCog(commands.Cog, name="LV"):
             self.anti_spam[message.author.id] = 0
         try:
             if self.anti_spam[message.author.id] == 0:
-                await self.give_exp(UUID=self.get_UUID(server_id=message.author.guild.id, member_id=message.author.id), EXP=randint(30, 50), member=message.author)
+                await self.give_exp(UUID=self.get_UUID(server_id=message.author.guild.id, member_id=message.author.id), EXP=randint(100, 300), member=message.author) # 경험치 100 ~ 300
             self.anti_spam[message.author.id] += 1
             await asyncio.sleep(0.7)
             self.anti_spam[message.author.id] -= 1
