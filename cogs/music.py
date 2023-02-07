@@ -142,7 +142,9 @@ class MusicCog(commands.Cog, name="노래"):
         play_msg = await ctx.send(embed=discord.Embed(description=now_playdata[1], color=color['yellow']).set_author(name="다음 곡을 재생합니다. 잠시만 기다려주세요.", icon_url=icon['loading']))
 
         with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
-            audio_link = ydl.extract_info(f'https://www.youtube.com/watch?v={now_playdata[0]}', download=False)['formats'][0]['url'] # 영상의 오디오 링크 저장
+            audio_link = ydl.extract_info(f'https://www.youtube.com/watch?v={now_playdata[0]}', download=False)['formats'][0]
+            audio_link = audio_link['fragment_base_url' if 'fragment_base_url' in audio_link else 'url']
+            # 영상의 오디오 링크 저장
 
 
         FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
