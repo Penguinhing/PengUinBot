@@ -115,7 +115,7 @@ class MusicCog(commands.Cog, name="노래"):
                 music_select = await self.bot.wait_for('message', timeout=15, check=check)
                 if '0' in music_select.content: raise asyncio.TimeoutError
             except asyncio.TimeoutError:
-                await ctx.send(f"{ctx.author.mention} 노래 선택이 취소되었습니다."); return
+                return await ctx.send(f"{ctx.author.mention} 노래 선택이 취소되었습니다.")
             finally:
                 await search_msg.delete()
 
