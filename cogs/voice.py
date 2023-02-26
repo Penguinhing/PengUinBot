@@ -39,8 +39,8 @@ class VoiceCog(commands.Cog, name="통화"):
                         await self.level.give_exp(UUID, EXP=seconds, member=member)
 
 
-                else:
-                    return await before.channel.send(f'{member.mention} 님, 통화 시간을 저장하는 데에 알 수 없는 오류가 발생하였습니다. 해당 통화 시간을 저장하시려면 개발자에게 문의해주세요.')
+                else: # 통화 시간이 0 이하인 경우
+                    return 
                 
 
             
