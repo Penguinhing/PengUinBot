@@ -1,5 +1,5 @@
-discord.py @ git+https://github.com/Rapptz/discord.py.git@7c1dffbf9d62279960a3618676a2c3972cd55207
+discord.py @ git+https://github.com/Rapptz/discord.py.git@90d50bef1fa7ce63191d0e0a8b64038738d3b929
 PyMySQL==1.0.2
 PyNaCl==1.5.0
-youtube-dl==2021.12.17
 youtube-search-python==1.6.6
+yt-dlp==2023.2.17
