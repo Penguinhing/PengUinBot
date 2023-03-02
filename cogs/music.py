@@ -1,4 +1,4 @@
-import discord, youtube_dl, re, asyncio, random
+import discord, yt_dlp, os, re, asyncio, random
 from discord.ext import commands, tasks
 from youtubesearchpython import VideosSearch
 from view.setting import *
@@ -141,14 +141,18 @@ class MusicCog(commands.Cog, name="노래"):
         
         play_msg = await ctx.send(embed=discord.Embed(description=now_playdata[1], color=color['yellow']).set_author(name="다음 곡을 재생합니다. 잠시만 기다려주세요.", icon_url=icon['loading']))
 
-        with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
-            audio_link = ydl.extract_info(f'https://www.youtube.com/watch?v={now_playdata[0]}', download=False)['formats'][0]
-            audio_link = audio_link['fragment_base_url' if 'fragment_base_url' in audio_link else 'url']
-            # 영상의 오디오 링크 저장
+        filename = f'cogs/temp_store/{ctx.guild.id}.mp3'
+        # 기존 노래 파일 제거
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+        # mp3 다운로드
+        with yt_dlp.YoutubeDL({'format': 'bestaudio',  'outtmpl': filename}) as ydl:
+            ydl.extract_info(f'https://www.youtube.com/watch?v={now_playdata[0]}', download=True)
 
 
-        FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-        ctx.voice_client.play(discord.FFmpegPCMAudio(audio_link, **FFMPEG_OPTIONS)) # 노래 재생
+        ctx.voice_client.play(discord.FFmpegPCMAudio(source=filename)) # 노래 재생
+        
         
         await play_msg.edit(embed=discord.Embed(description=now_playdata[1], color=color['green'])\
             .set_author(name='현재 재생 중인 곡', icon_url='https://i.imgur.com/hKL4A4z.png', url='https://www.youtube.com/watch?v=' + now_playdata[0]))
