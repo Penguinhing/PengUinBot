@@ -2,7 +2,7 @@ import discord
 from discord.ui import Button, View
 
 
-class search_btn(View):
+class Active(View):
 	def __init__(self, ctx):
 		super().__init__(timeout=15)
 		self.ctx = ctx

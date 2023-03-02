@@ -2,7 +2,7 @@ import discord
 from discord.ui import Button, View
 
 
-class queue_btn(View):
+class Active(View):
     def __init__(self, ctx, msg, embed, playlist, obj):
         super().__init__(timeout=None)
         self.ctx = ctx
@@ -19,7 +19,7 @@ class queue_btn(View):
                 return False
             return True
     
-    @discord.ui.button(label='<< 이전 페이지', style=discord.ButtonStyle.grey)
+    @discord.ui.button(label='<<', style=discord.ButtonStyle.grey)
     async def perv(self, interaction, button):
         if self.now_page-1 >= 1:
             self.now_page -= 1
@@ -28,7 +28,7 @@ class queue_btn(View):
         else:
             await interaction.response.send_message('이전 페이지가 존재하지 않아요.', ephemeral=True)
 
-    @discord.ui.button(label='새로고침', style=discord.ButtonStyle.grey)
+    @discord.ui.button(label='R', style=discord.ButtonStyle.grey)
     async def reset(self, interaction, button):
         self.playlist = [f"{i+1}. " + song[1] for i, song in enumerate(self.obj.playlist[self.ctx.guild.id])]
         self.now_page = 1
@@ -36,7 +36,7 @@ class queue_btn(View):
         await interaction.response.send_message('재생 목록을 새로고침 하였습니다!', ephemeral=True)
     
 
-    @discord.ui.button(label='다음 페이지 >>', style=discord.ButtonStyle.grey)
+    @discord.ui.button(label='>>', style=discord.ButtonStyle.grey)
     async def next(self, interaction, button):
         if self.now_page+1 <= self.max_page:
             self.now_page += 1

@@ -2,8 +2,7 @@ import discord, yt_dlp, os, re, asyncio, random
 from discord.ext import commands, tasks
 from youtubesearchpython import VideosSearch
 from view.setting import *
-from view.button.search_btn import search_btn
-from view.button.queue_btn import queue_btn
+from view.button import btn_control, btn_queue, btn_search
 
 
 class MusicCog(commands.Cog, name="노래"):
@@ -74,7 +73,7 @@ class MusicCog(commands.Cog, name="노래"):
     async def play(self, ctx, *title):
         if not ctx.voice_client: # 통화방에 없는 경우 join 함수 실행
             if await self.join(ctx) == -1: return
-
+        
         title = ' '.join(list(title))
 
         if title == '': # 제목 없이 입력했을 경우 노래 재생/일시정지
@@ -103,7 +102,7 @@ class MusicCog(commands.Cog, name="노래"):
             
             search_msg = await ctx.send(embed=discord.Embed(title=f"``{title}`` 를(을) 검색한 결과입니다.",\
                  description='\n'.join([f"{i+1}. {search_result[i][1]}" for i in range(5)]), color=color['blue'])\
-                .set_footer(text="※ 원하는 노래의 번호를 선택해주세요. (0 입력 시 취소)").set_thumbnail(url=icon['search']), view=search_btn(ctx))
+                .set_footer(text="※ 원하는 노래의 번호를 선택해주세요. (0 입력 시 취소)").set_thumbnail(url=icon['search']), view=btn_search.Active(ctx))
 
 
             def check(m):
@@ -118,6 +117,7 @@ class MusicCog(commands.Cog, name="노래"):
                 return await ctx.send(f"{ctx.author.mention} 노래 선택이 취소되었습니다.")
             finally:
                 await search_msg.delete()
+                await ctx.message.delete()
 
             
             self.playlist[ctx.guild.id] += [search_result[int(music_select.content)-1]]
@@ -154,7 +154,9 @@ class MusicCog(commands.Cog, name="노래"):
         ctx.voice_client.play(discord.FFmpegPCMAudio(source=filename)) # 노래 재생
         
         
-        await play_msg.edit(embed=discord.Embed(description=now_playdata[1], color=color['green'])\
+        await play_msg.edit(
+            view=btn_control.Active(self, ctx),
+            embed=discord.Embed(description=now_playdata[1], color=color['green'])\
             .set_author(name='현재 재생 중인 곡', icon_url='https://i.imgur.com/hKL4A4z.png', url='https://www.youtube.com/watch?v=' + now_playdata[0]))
             
         while ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
@@ -176,7 +178,7 @@ class MusicCog(commands.Cog, name="노래"):
         msg = await ctx.send(embed=embed)
 
         if len(titles) > 5:
-            await msg.edit(view=queue_btn(ctx=ctx, msg=msg, embed=embed, playlist=titles, obj=self))
+            await msg.edit(view=btn_queue.Active(ctx=ctx, msg=msg, embed=embed, playlist=titles, obj=self))
 
     
 
