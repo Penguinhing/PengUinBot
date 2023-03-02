@@ -34,5 +34,6 @@ class Active(View):
 
 
     @discord.ui.button(label='🔌 종료', style=discord.ButtonStyle.danger)
-    async def next(self, interaction, button):
+    async def exit(self, interaction, button):
         await self.parent.leave(self.ctx)
+        await interaction.response.defer()
