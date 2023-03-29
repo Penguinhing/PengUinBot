@@ -1,12 +1,14 @@
-import discord, asyncio
+import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.ui import Select, View
 
 
 class ManagerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.streamings = dict()
+        self.voice_region = ('brazil', 'hongkong', 'india', 'japan', 'rotterdam', 'russia', 'singapore', 'south-korea', 'southafrica', 'sydney', 'us-central', 'us-east', 'us-south', 'us-west')
     
     @app_commands.command(name="청소", description="갯수만큼 채널의 메시지를 삭제합니다. (관리자 전용)")
     @app_commands.checks.has_permissions(administrator=True)
@@ -14,36 +16,33 @@ class ManagerCog(commands.Cog):
         await interaction.response.defer()
         await interaction.channel.purge(limit=갯수+1)
 
+    @app_commands.command(name="새로고침", description="현재 통화 채널의 서버를 새로운 서버로 변경합니다.")
+    @app_commands.checks.cooldown(1, 10.0)
+    async def refresh(self, interaction:discord.Interaction):
+        if interaction.user.voice:
 
-    # @commands.Cog.listener()
-    # async def on_voice_state_update(self, member, before, after):
-        
-        
-    #     self.stream_role = 1079332901130350643 # 방송 권한 역할 ID
-    #     self.reconnect_channel = 1003253835357237319 # 재접속할때 이동시킬 채널 ID
+            # 선택 바
+            select = Select(
+                placeholder="변경할 지역을 골라주세요.",
+                options=[ discord.SelectOption(label=v) for v in self.voice_region ])
 
-    #     if str(member.roles).find(str(self.stream_role)) != -1: # 방송 권한이 있는 경우 return
-    #         return
+            async def my_callback(interaction): # 선택바를 선택했을 경우
+                await interaction.user.voice.channel.edit(rtc_region=select.values[0])
+                await interaction.response.send_message(f"{select.values[0]} 로 통화 지역을 변경했습니다.", ephemeral=True)
 
-    #     # 방송을 켠 경우
-    #     if after.self_stream:
-    #         self.streamings[member.id] = True
+            select.callback = my_callback # 선택바 출력
+            await interaction.response.send_message(view=View(timeout=60).add_item(select), ephemeral=True)
 
-    #         # 180초, 5초마다 체크
-    #         for i in range(36):
-    #             await asyncio.sleep(5)
-    #             if not self.streamings[member.id]: # 중간에 방송이 종료된 경우 함수 종료
-    #                 return self.streamings.pop(member.id)
+
             
-    #         # 재접속
-    #         original_channel = after.channel.id
-    #         await member.move_to(self.bot.get_channel(self.reconnect_channel))
-    #         await member.move_to(self.bot.get_channel(original_channel))
-        
-    #     elif self.streamings.get(member.id):
-    #         self.streamings[member.id] = False
+        else:
+            await interaction.response.send_message("접속 중인 통화 채널이 없습니다.", ephemeral=True)
 
 
+    @refresh.error
+    async def on_test_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(str(error), ephemeral=True)
 
 
 async def setup(bot):

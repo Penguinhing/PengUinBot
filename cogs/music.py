@@ -9,7 +9,7 @@ class MusicCog(commands.Cog, name="노래"):
 
     def __init__(self, bot):
         self.bot = bot
-        self.playlist = {} # 서버별 플레이리스트 {서버 아아디:[ 리스트 ]}
+        self.playlist = {} # 서버별 플레이리스트 {서버 아아디:[ 코드, 제목 ]}
         self.config = {} # 서버별 설정 값
         self.music_tasks = {} # 서버별 노래 작업 목록
         self.leave_tasks = {} # 자동 퇴장 작업 목록 

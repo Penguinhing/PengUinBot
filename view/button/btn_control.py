@@ -9,11 +9,11 @@ class Active(View):
         self.parent = parent
         self.ctx = ctx
 
-        self.current_play = self.parent.playlist[self.ctx.guild.id][0][1] # 재생 중인 곡
+        self.current_play = self.parent.playlist[self.ctx.guild.id][0] # 재생 중인 곡
         
 
     async def interaction_check(self, interaction) -> bool:
-        if interaction.user != self.ctx.author or self.parent.playlist[self.ctx.guild.id][0][1] != self.current_play:
+        if interaction.user != self.ctx.author or self.parent.playlist[self.ctx.guild.id][0][1] != self.current_play[1]:
             await interaction.response.send_message("권한이 없습니다.", ephemeral=True)
             return False
         return True
@@ -31,7 +31,6 @@ class Active(View):
     @discord.ui.button(label='⏭️ 다음 곡', style=discord.ButtonStyle.grey)
     async def next(self, interaction, button):
         await self.parent.skip(self.ctx)
-
 
     @discord.ui.button(label='🔌 종료', style=discord.ButtonStyle.danger)
     async def exit(self, interaction, button):
