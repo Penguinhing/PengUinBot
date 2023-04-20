@@ -1,4 +1,3 @@
-
 import discord, asyncio, datetime as dt
 from view.setting import *
 from discord.ext import commands
@@ -164,7 +163,7 @@ class LevelCog(commands.Cog, name="LV"):
             if self.anti_spam[message.author.id] == 0:
                 await self.give_exp(UUID=self.get_UUID(server_id=message.author.guild.id, member_id=message.author.id), EXP=randint(100, 300), member=message.author) # 경험치 100 ~ 300
             self.anti_spam[message.author.id] += 1
-            await asyncio.sleep(0.7)
+            await asyncio.sleep(3)
             self.anti_spam[message.author.id] -= 1
         except AttributeError:
             pass
