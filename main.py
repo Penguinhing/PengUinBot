@@ -42,16 +42,20 @@ async def on_command_error(ctx, error):
 ########################################################################################################################
 ########################################################################################################################
 
-@tasks.loop(hours=6) # mysql 오류 방지
-async def auto_reload_mysql(self):
+@tasks.loop(hours=3) # mysql 오류 방지
+async def auto_reload_mysql():
     await reload_helper()
 
 async def reload_helper():
     voice_time = bot.get_cog('통화').voice_time
+
+    bot.get_cog('관리').speaker.stop()
     await bot.reload_extension('data.mysql')
+
     for extenison in os.listdir('cogs'):
         if extenison[-3:] == '.py':
             await bot.reload_extension('cogs.' + extenison[:-3])
+
     bot.get_cog('통화').voice_time = voice_time
 
 
