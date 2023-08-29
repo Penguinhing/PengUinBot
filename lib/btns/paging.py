@@ -1,3 +1,4 @@
+from typing import Any, Coroutine
 import discord
 from discord.ui import Button, View
 
@@ -7,7 +8,7 @@ class Page(View):
                        embed : discord.Embed, 
                        contents : list,
                        ):
-        super().__init__(timeout=None)
+        super().__init__(timeout=60)
         self.message= message
         self.embed = embed
         
@@ -27,6 +28,10 @@ class Page(View):
     #             return False
     #         return True
     
+
+    async def on_timeout(self):
+        await self.message.delete()
+
     @discord.ui.button(label='<<', style=discord.ButtonStyle.grey)
     async def perv(self, interaction : discord.Interaction, button):
         self.now_page = max(1, self.now_page-5)
