@@ -57,6 +57,11 @@ class Page(View):
         start = self.page_size * self.now_page - self.page_size
         end = start+self.page_size
 
+        # 임시코드
+        if self.now_page == self.max_page:
+            for idx in range(5):
+                self.embed.set_field_at(idx, name='', value='', inline=False)
+        
 
         for idx, content in enumerate(self.contents[start:end]):
             self.embed.set_field_at(idx, name=content['name'], value=content['description'], inline=False)
