@@ -99,6 +99,10 @@ class Exp(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member : discord.Member, before : discord.VoiceState, after : discord.VoiceState):
+            
+            if member.bot:
+                return
+
             key = member.guild.id + member.id
             if after.channel is None:
                 if key in self.voice_times:
