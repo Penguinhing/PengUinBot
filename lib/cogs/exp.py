@@ -21,10 +21,9 @@ class Exp(commands.Cog):
     @app_commands.command(name="경험치지급", description="유저에게 경험치를 지급합니다.")
     @app_commands.checks.has_permissions(administrator=True)
     async def give_custom_exp(self, interaction:discord.Interaction, 멘션 : str, exp : int = 0):
-        await self.update_member(interaction.guild.id, 멘션.replace('<@', '').replace('>', ''), exp)
+        await self.update_member(str(interaction.guild.id), 멘션.replace('<@', '').replace('>', ''), exp)
         
         await interaction.response.send_message(f"관리자가 {멘션} 님에게 {exp:,} EXP 를 지급하였습니다.")
-
 
     @app_commands.command(name="정보", description="자기 자신 또는 다른 사람의 정보를 확인합니다.")
     async def check_info(self, interaction:discord.Interaction, 멘션:str = None):
@@ -161,14 +160,46 @@ class Exp(commands.Cog):
 
 
         if prev_level != now_level:
+
+
+            # 랭크 부분
+            rankup = False
+            ranks = self.query.fetchAll("SELECT * FROM ranks WHERE SERVER_ID = '{server_id}' AND LEVEL <= {now_level} ORDER BY LEVEL DESC"
+                                .format(server_id = server_id, now_level = now_level))
+            guild = self.bot.get_guild(int(server_id))
+            member = guild.get_member(int(member_id))
+            if ranks:
+                rank_up_role_id = int(ranks[0]['ROLE_ID'].replace('<@&', '').replace('>', ''))
+                if member.get_role(rank_up_role_id) is None: # 랭크업 체크
+                    for rank in ranks[1:]: # 이전 랭크의 역할들 모두 제거
+                        role = member.get_role(int(rank['ROLE_ID'].replace('<@&', '').replace('>', '')))
+                        if role:
+                            await member.remove_roles(role)
+                    
+                    # 새로운 역할 지급
+                    await member.add_roles(guild.get_role(rank_up_role_id))
+                    rankup = rank_up_role_id
+
+
+
+
             server = self.query.fetchOne("SELECT LOG_CHANNEL FROM server_info WHERE SERVER_ID = {server_id}".format(server_id=server_id))
-            if server:
+            if server: # 서버의 로그 채널이 있는 경우
                 log_channel = self.bot.get_channel(int(server['LOG_CHANNEL']))
-                user = self.bot.get_user(int(member_id))
-                await log_channel.send(":information_source:  {user} 님께서 레벨업 하셨습니다!\n\n:up: ~~Lv.{prev_level}~~ -> ``Lv.{now_level}``".format(
-                    user = user.mention,
-                    prev_level = prev_level,
-                    now_level = now_level))
+
+                # 레벨업 embed 메시지 생성
+                embed_levelup = discord.Embed(title = "LEVEL UP !!", description="{mention} 님이 레벨업 하셨습니다!"
+                    .format(mention = member.mention), color=3145538)
+                embed_levelup.set_author(name="{prev_level} -> {now_level}".format(prev_level=prev_level, now_level=now_level)
+                                 , icon_url=self.bot.user.avatar).set_footer(text="현재 레벨: {now_level}".format(now_level=now_level))
+                embed_levelup.set_image(url="https://i.imgur.com/Bnoa9jD.png")
+                await log_channel.send(embed=embed_levelup)
+
+                if rankup:
+                    embed_rankup = discord.Embed(title="RANK UP !!", description="{mention} 님이 <@&{role_id}> 등급으로 승급하셨습니다!"
+                        .format(mention=member.mention, role_id = rankup), color=16734463)
+                    embed_rankup.set_thumbnail(url="https://i.imgur.com/jKrMCkW.png")
+                    await log_channel.send(embed=embed_rankup)
         return member_info
     
 
