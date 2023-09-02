@@ -213,10 +213,9 @@ class Exp(commands.Cog):
 
 
     def format_time(self, seconds):
-        time_delta = timedelta(seconds=seconds)
-        hours, remainder = divmod(time_delta.seconds, 3600)
+        hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
-        formatted_time = f"{hours}시간 {minutes}분 {seconds}초"
+        formatted_time = f"{int(hours)}시간 {int(minutes)}분 {int(seconds)}초"
         return formatted_time
 
 
